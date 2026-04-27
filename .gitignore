@@ -1,0 +1,39 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+terraform/terraform.tfvars
+terraform/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Docker
+.dockerignore
+
+# AWS
+.aws/
+
+# OS
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Secrets — NEVER commit these
+.env
+.env.*
+secrets.yaml

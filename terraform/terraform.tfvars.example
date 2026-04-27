@@ -1,0 +1,15 @@
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to version control
+
+aws_region         = "us-east-1"
+project            = "shopnow"
+environment        = "dev"
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+# Replace with your actual ECR image URIs after pushing
+ecr_frontend_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/shopnow-frontend:latest"
+ecr_backend_image  = "123456789.dkr.ecr.us-east-1.amazonaws.com/shopnow-backend:latest"
+
+db_password            = "YourSecurePassword123!"
+eks_kubernetes_version = "1.29"

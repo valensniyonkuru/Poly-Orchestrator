@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopNow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+  header { background: #1a1a2e; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 1.5rem; }
+  .badge { background: #e94560; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; }
+  .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+  .status-bar { background: #fff; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 2rem; border: 1px solid #e0e0e0; }
+  .status-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; }
+  .dot.warn { background: #ff9800; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.2rem; }
+  .card { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #e0e0e0; transition: transform 0.2s; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+  .card-img { background: linear-gradient(135deg, #1a1a2e, #16213e); height: 140px; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+  .card-body { padding: 1rem; }
+  .card-body h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+  .card-body .price { color: #e94560; font-weight: bold; font-size: 1.1rem; }
+  .card-body button { margin-top: 0.8rem; width: 100%; background: #1a1a2e; color: white; border: none; padding: 0.6rem; border-radius: 6px; cursor: pointer; }
+  .card-body button:hover { background: #e94560; }
+  #message { position: fixed; bottom: 2rem; right: 2rem; background: #4caf50; color: white; padding: 0.8rem 1.4rem; border-radius: 8px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛍️ ShopNow</h1>
+  <div>Cart <span class="badge" id="cart-count">0</span></div>
+</header>
+<div class="container">
+  <div class="status-bar">
+    <div class="status-item"><span class="dot"></span> Frontend: Online</div>
+    <div class="status-item"><span class="dot" id="backend-dot"></span> Backend API: <span id="backend-status">Checking...</span></div>
+    <div class="status-item"><span class="dot"></span> Redis Cache</div>
+    <div class="status-item"><span class="dot"></span> Postgres DB</div>
+  </div>
+  <div class="grid" id="products-grid"><p>Loading products...</p></div>
+</div>
+<div id="message">Added to cart!</div>
+<script>
+  let cartCount = 0;
+  async function loadProducts() {
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      document.getElementById('backend-dot').className = 'dot';
+      document.getElementById('backend-status').textContent = 'Online';
+      const emojis = ['📦','🎮','👟','⌚','💻','📱','🎧','🖥️'];
+      document.getElementById('products-grid').innerHTML = data.products.map((p,i) => `
+        <div class="card">
+          <div class="card-img">${emojis[i%emojis.length]}</div>
+          <div class="card-body">
+            <h3>${p.name}</h3>
+            <p style="color:#666;font-size:0.85rem">${p.description}</p>
+            <div class="price">$${p.price}</div>
+            <button onclick="addToCart('${p.name}')">Add to Cart</button>
+          </div>
+        </div>`).join('');
+    } catch(e) {
+      document.getElementById('backend-dot').className = 'dot warn';
+      document.getElementById('backend-status').textContent = 'Offline';
+    }
+  }
+  function addToCart(name) {
+    cartCount++;
+    document.getElementById('cart-count').textContent = cartCount;
+    const msg = document.getElementById('message');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  }
+  loadProducts();
+</script>
+</body>
+</html>
