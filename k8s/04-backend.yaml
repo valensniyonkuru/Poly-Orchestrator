@@ -31,7 +31,7 @@ spec:
           # Or let deploy.sh handle it automatically.
           image: ${ECR_REGISTRY}/shopnow-backend:latest
           ports:
-            - containerPort: 5001
+            - containerPort: 5000
           envFrom:
             - configMapRef:
                 name: shopnow-config
@@ -51,14 +51,14 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 5001
+              port: 5000
             initialDelaySeconds: 30
             periodSeconds: 15
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
-              port: 5001
+              port: 5000
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
@@ -75,8 +75,8 @@ spec:
     app: backend
   ports:
     - name: http
-      port: 5001
-      targetPort: 5001
+      port: 5000
+      targetPort: 5000
   type: ClusterIP
 ---
 # Horizontal Pod Autoscaler — scales backend pods based on CPU

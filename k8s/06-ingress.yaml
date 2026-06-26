@@ -25,7 +25,7 @@ spec:
               service:
                 name: backend-service
                 port:
-                  number: 5001
+                  number: 5000
           - path: /
             pathType: Prefix
             backend:

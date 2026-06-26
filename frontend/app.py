@@ -4,7 +4,7 @@ from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:5001")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:5000")
 
 @app.route("/")
 def index():

@@ -14,7 +14,7 @@ spec:
             matchLabels:
               app: frontend
       ports:
-        - port: 5001
+        - port: 5000
 ---
 # Allow backend → redis + postgres
 apiVersion: networking.k8s.io/v1

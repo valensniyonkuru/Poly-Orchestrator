@@ -45,7 +45,7 @@ Internet
 [ Frontend — Flask/Python — Port 5000 ]
     │  (talks to backend via service discovery)
     ▼
-[ Backend API — Flask/Python — Port 5001 ]
+[ Backend API — Flask/Python — Port 5000 ]
     ├──▶ [ Redis 7 — Port 6379 ]  (session/cart caching)
     └──▶ [ Postgres 16 — Port 5432 ]  (orders, products)
 ```
@@ -158,7 +158,7 @@ docker compose ps
 ```
 NAME         STATUS          PORTS
 frontend     Up (healthy)    0.0.0.0:5000->5000/tcp
-backend      Up (healthy)    0.0.0.0:5001->5001/tcp
+backend      Up (healthy)    0.0.0.0:5000->5000/tcp
 redis        Up (healthy)    0.0.0.0:6379->6379/tcp
 postgres     Up (healthy)    0.0.0.0:5432->5432/tcp
 ```
@@ -173,23 +173,23 @@ open http://localhost:5000
 curl http://localhost:5000/health
 
 # Check backend health (includes Redis + Postgres status)
-curl http://localhost:5001/health | python3 -m json.tool
+curl http://localhost:5000/health | python3 -m json.tool
 
 # Load products (served from DB, cached in Redis)
-curl http://localhost:5001/products | python3 -m json.tool
+curl http://localhost:5000/products | python3 -m json.tool
 
 # Add item to cart (stored in Redis)
-curl -X POST http://localhost:5001/cart/add \
+curl -X POST http://localhost:5000/cart/add \
   -H "Content-Type: application/json" \
   -d '{"product_id": 1, "name": "Wireless Headphones", "price": 79.99}'
 
 # Create an order (stored in Postgres)
-curl -X POST http://localhost:5001/orders \
+curl -X POST http://localhost:5000/orders \
   -H "Content-Type: application/json" \
   -d '{"product_name": "Wireless Headphones", "quantity": 1, "total": 79.99}'
 
 # View orders from Postgres
-curl http://localhost:5001/orders | python3 -m json.tool
+curl http://localhost:5000/orders | python3 -m json.tool
 ```
 
 ### Step 3 — Stop local environment
@@ -261,7 +261,7 @@ Internet → ALB (port 80)
               │
               ▼
     [frontend task — Fargate]
-    BACKEND_URL=http://backend.shopnow.local:5001
+    BACKEND_URL=http://backend.shopnow.local:5000
               │  (Cloud Map DNS resolution)
               ▼
     [backend task — Fargate]
@@ -335,11 +335,11 @@ terraform -chdir=terraform output ecs_alb_dns
 ```
 Internet → AWS ALB (via ALB Ingress Controller)
               │
-              ├─/api/* ──▶ backend-service:5001 (ClusterIP)
+              ├─/api/* ──▶ backend-service:5000 (ClusterIP)
               │                    │
               └─/*     ──▶ frontend-service:80  (ClusterIP)
                                   │
-                         BACKEND_URL=http://backend-service:5001
+                         BACKEND_URL=http://backend-service:5000
 ```
 
 **Service Discovery:** Kubernetes CoreDNS resolves `backend-service.shopnow.svc.cluster.local`. Services use stable ClusterIP addresses — pods behind them can scale freely.

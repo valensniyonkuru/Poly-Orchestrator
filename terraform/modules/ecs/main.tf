@@ -78,13 +78,13 @@ resource "aws_security_group" "ecs_tasks" {
 
   ingress {
     from_port       = 5000
-    to_port         = 5001
+    to_port         = 5000
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
   ingress {
     from_port = 5000
-    to_port   = 5001
+    to_port   = 5000
     protocol  = "tcp"
     self      = true
   }
@@ -173,7 +173,7 @@ resource "aws_ecs_task_definition" "frontend" {
     essential = true
     portMappings = [{ containerPort = 5000, protocol = "tcp" }]
     environment = [
-      { name = "BACKEND_URL", value = "http://backend.${var.project}.local:5001" }
+      { name = "BACKEND_URL", value = "http://backend.${var.project}.local:5000" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -205,7 +205,7 @@ resource "aws_ecs_task_definition" "backend" {
     name      = "backend"
     image     = var.ecr_backend
     essential = true
-    portMappings = [{ containerPort = 5001, protocol = "tcp" }]
+    portMappings = [{ containerPort = 5000, protocol = "tcp" }]
     environment = [
       { name = "REDIS_HOST",    value = "redis.${var.project}.local" },
       { name = "DB_HOST",       value = "postgres.${var.project}.local" },
@@ -222,7 +222,7 @@ resource "aws_ecs_task_definition" "backend" {
       }
     }
     healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
+      command     = ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
       interval    = 30
       timeout     = 5
       retries     = 3
