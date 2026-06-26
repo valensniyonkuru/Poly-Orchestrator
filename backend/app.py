@@ -4,7 +4,7 @@ import json
 import redis
 import psycopg2
 from flask import Flask, jsonify, request
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = Flask(__name__)
 
@@ -72,7 +72,7 @@ def health():
         "service": "backend",
         "redis": "connected" if redis_ok else "disconnected",
         "postgres": "connected" if db_ok else "disconnected",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
 @app.route("/products")
@@ -105,13 +105,15 @@ def cart():
 
 @app.route("/cart/add", methods=["POST"])
 def add_to_cart():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data or "product_id" not in data:
+        return jsonify({"error": "product_id is required"}), 400
     r = get_redis()
     if not r:
         return jsonify({"error": "Cache unavailable"}), 503
     r.lpush("cart:default", json.dumps(data))
     r.expire("cart:default", 3600)
-    return jsonify({"message": "Added to cart", "item": data})
+    return jsonify({"message": "Added to cart", "item": data}), 201
 
 @app.route("/orders", methods=["POST"])
 def create_order():
