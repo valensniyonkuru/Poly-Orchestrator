@@ -24,7 +24,12 @@ spec:
     spec:
       containers:
         - name: backend
-          image: YOUR_ECR_URI/shopnow-backend:latest  # replace with actual ECR URI
+          # ECR_REGISTRY format: <account-id>.dkr.ecr.<region>.amazonaws.com
+          # Set it before applying:
+          #   export ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+          #   envsubst < k8s/04-backend.yaml | kubectl apply -f -
+          # Or let deploy.sh handle it automatically.
+          image: ${ECR_REGISTRY}/shopnow-backend:latest
           ports:
             - containerPort: 5001
           envFrom:
