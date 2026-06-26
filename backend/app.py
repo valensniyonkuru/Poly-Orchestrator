@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import redis
 import psycopg2
@@ -15,7 +16,10 @@ REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 DB_HOST = os.environ.get("DB_HOST", "postgres")
 DB_NAME = os.environ.get("DB_NAME", "shopnow")
 DB_USER = os.environ.get("DB_USER", "shopnow")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "shopnow123")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+if not DB_PASSWORD:
+    print("ERROR: DB_PASSWORD environment variable is not set", file=sys.stderr)
+    sys.exit(1)
 
 PRODUCTS = [
     {"id": 1, "name": "Wireless Headphones", "price": 79.99, "description": "Premium sound quality", "stock": 50},

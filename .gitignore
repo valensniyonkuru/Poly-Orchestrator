@@ -37,3 +37,8 @@ Thumbs.db
 .env
 .env.*
 secrets.yaml
+
+# Terraform state & variable files (may contain plaintext secrets)
+*.tfvars
+terraform.tfstate
+terraform.tfstate.backup
