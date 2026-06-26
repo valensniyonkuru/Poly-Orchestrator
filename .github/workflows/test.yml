@@ -1,0 +1,50 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: pytest + coverage
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # psycopg2 (source build) needs the Postgres client headers.
+      - name: Install system dependencies
+        run: sudo apt-get install -y --no-install-recommends libpq-dev
+
+      - name: Install application dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests with coverage
+        env:
+          # Satisfies the startup guard in app.py; never touches a real database.
+          DB_PASSWORD: testpassword
+        run: |
+          coverage run --source=app -m pytest tests/ -v --tb=short
+          coverage report --fail-under=70
+          coverage xml -o coverage.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: backend/coverage.xml
