@@ -10,12 +10,13 @@ terraform {
       version = "~> 2.0"
     }
   }
-  # Uncomment to use remote state:
-  # backend "s3" {
-  #   bucket = "shopnow-terraform-state"
-  #   key    = "shopnow/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  backend "s3" {
+    bucket         = "shopnow-tfstate"
+    key            = "shopnow/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "shopnow-tf-lock"
+  }
 }
 
 provider "aws" {

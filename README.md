@@ -200,6 +200,45 @@ docker compose down -v   # -v also removes named volumes
 
 ---
 
+## Remote State Setup (First-time only)
+
+> **Run this once** before the main Terraform configuration. It provisions
+> the S3 bucket and DynamoDB table that store and lock the shared Terraform state.
+> Skip this section if the bucket `shopnow-tfstate` already exists in your account.
+
+### Step 1 — Provision the backend infrastructure
+
+```bash
+cd terraform/bootstrap
+terraform init
+terraform apply
+# Creates: S3 bucket "shopnow-tfstate" (versioned, encrypted, private)
+#          DynamoDB table "shopnow-tf-lock" (PAY_PER_REQUEST, LockID hash key)
+```
+
+### Step 2 — Migrate state to S3
+
+```bash
+cd ../          # back to terraform/
+terraform init
+# Terraform detects the backend "s3" block and prompts:
+#   "Do you want to copy existing state to the new backend? yes"
+# Local terraform.tfstate is uploaded to s3://shopnow-tfstate/shopnow/terraform.tfstate
+```
+
+### Step 3 — Deploy infrastructure
+
+```bash
+terraform plan -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+```
+
+> **Note:** All subsequent `terraform plan` / `apply` / `destroy` runs by any
+> team member will read and write state from S3. The DynamoDB table prevents
+> two applies from running simultaneously.
+
+---
+
 ## Part 2: Terraform
 
 ### Step 1 — Configure credentials and variables
