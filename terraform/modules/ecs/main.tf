@@ -21,7 +21,11 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ── IAM Role for ECS Task Execution ─────────────────────────────────────────
+# ── IAM: Execution Role ──────────────────────────────────────────────────────
+# Used by the ECS agent (not the application) to:
+#   • pull images from ECR
+#   • write logs to CloudWatch
+#   • fetch secrets from SSM at task launch (inject into container env)
 resource "aws_iam_role" "ecs_execution" {
   name = "${var.project}-${var.environment}-ecs-execution-role"
 
@@ -38,6 +42,83 @@ resource "aws_iam_role" "ecs_execution" {
 resource "aws_iam_role_policy_attachment" "ecs_execution" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Inline policy that lets the ECS agent resolve SecureString parameters
+# from SSM at task launch time (required for the secrets = [...] block).
+resource "aws_iam_role_policy" "ecs_execution_ssm" {
+  name = "${var.project}-${var.environment}-ecs-execution-ssm"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "FetchSecrets"
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameters",
+          "ssm:GetParameter",
+          "secretsmanager:GetSecretValue",
+          "kms:Decrypt",
+        ]
+        Resource = [
+          aws_ssm_parameter.db_password.arn,
+          # Add additional parameter ARNs here as the app grows.
+        ]
+      }
+    ]
+  })
+}
+
+# ── IAM: Task Role ───────────────────────────────────────────────────────────
+# Assumed by the application code running INSIDE the container.
+# Separate from the execution role — least-privilege: the app can call
+# AWS APIs but cannot pull images or write to CloudWatch directly.
+resource "aws_iam_role" "ecs_task" {
+  name = "${var.project}-${var.environment}-ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task" {
+  name = "${var.project}-${var.environment}-ecs-task-policy"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ReadSecrets"
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameters",
+          "ssm:GetParameter",
+          "secretsmanager:GetSecretValue",
+          "kms:Decrypt",
+        ]
+        Resource = [
+          aws_ssm_parameter.db_password.arn,
+        ]
+      }
+    ]
+  })
+}
+
+# ── SSM Parameter: DB password ───────────────────────────────────────────────
+# Stored as SecureString so it is encrypted at rest by the default SSM KMS key.
+# The plaintext value is never written into a task definition or log stream.
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/shopnow/db_password"
+  type  = "SecureString"
+  value = var.db_password
 }
 
 # ── CloudWatch Log Groups ────────────────────────────────────────────────────
@@ -166,6 +247,7 @@ resource "aws_ecs_task_definition" "frontend" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
     name      = "frontend"
@@ -200,6 +282,7 @@ resource "aws_ecs_task_definition" "backend" {
   cpu                      = "512"
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
     name      = "backend"
@@ -207,11 +290,16 @@ resource "aws_ecs_task_definition" "backend" {
     essential = true
     portMappings = [{ containerPort = 5000, protocol = "tcp" }]
     environment = [
-      { name = "REDIS_HOST",    value = "redis.${var.project}.local" },
-      { name = "DB_HOST",       value = "postgres.${var.project}.local" },
-      { name = "DB_NAME",       value = "shopnow" },
-      { name = "DB_USER",       value = "shopnow" },
-      { name = "DB_PASSWORD",   value = var.db_password }
+      { name = "REDIS_HOST", value = "redis.${var.project}.local" },
+      { name = "DB_HOST",    value = "postgres.${var.project}.local" },
+      { name = "DB_NAME",    value = "shopnow" },
+      { name = "DB_USER",    value = "shopnow" },
+    ]
+    secrets = [
+      {
+        name      = "DB_PASSWORD"
+        valueFrom = aws_ssm_parameter.db_password.arn
+      }
     ]
     logConfiguration = {
       logDriver = "awslogs"
